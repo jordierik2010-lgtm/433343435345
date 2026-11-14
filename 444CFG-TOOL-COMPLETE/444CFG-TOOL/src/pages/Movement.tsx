@@ -10,16 +10,18 @@ const category = (o: OpView) => { const l = o.location.toLowerCase();
 const CATS = ["Mouse", "Keyboard", "Input", "Network", "System"];
 
 function VideoPlayer() {
-  const [src, setSrc] = useState<string | null>(null); const ref = useRef<HTMLVideoElement>(null); const objUrl = useRef<string | null>(null);
+  const [src, setSrc] = useState<string | null>("/movement.mp4"); const ref = useRef<HTMLVideoElement>(null); const objUrl = useRef<string | null>(null);
+  const [videoError, setVideoError] = useState(false);
   useEffect(() => {
-    fetch("/movement.mp4", { method: "HEAD" }).then(r => { if (r.ok && (r.headers.get("content-type") || "").startsWith("video")) setSrc("/movement.mp4"); }).catch(() => {});
+    // Let WebView2 load the bundled Vite asset directly. Some Tauri schemes
+    // do not support HEAD requests or return a generic Content-Type.
     return () => { if (objUrl.current) URL.revokeObjectURL(objUrl.current); };
   }, []);
-  const pick = (f?: File) => { if (!f) return; if (objUrl.current) URL.revokeObjectURL(objUrl.current); objUrl.current = URL.createObjectURL(f); setSrc(objUrl.current); };
+  const pick = (f?: File) => { if (!f) return; if (objUrl.current) URL.revokeObjectURL(objUrl.current); objUrl.current = URL.createObjectURL(f); setVideoError(false); setSrc(objUrl.current); };
   return (
     <div className="video">
-      {src ? <video ref={ref} src={src} controls preload="metadata" playsInline /> :
-        <div className="empty"><div><b style={{ color: "var(--text)" }}>MOVEMENT PREVIEW</b><br />Aún no hay vídeo de demostración.</div>
+      {src ? <video ref={ref} src={src} controls preload="metadata" playsInline onError={() => { setVideoError(true); setSrc(null); }} /> :
+        <div className="empty"><div><b style={{ color: "var(--text)" }}>MOVEMENT PREVIEW</b><br />{videoError ? "No se ha podido abrir el vídeo integrado. Comprueba que sea MP4 con vídeo H.264 y audio AAC." : "Aún no hay vídeo de demostración."}</div>
           <label className="btn primary">Seleccionar vídeo<input type="file" accept="video/*" hidden onChange={e => pick(e.target.files?.[0])} /></label>
           <small>Para incluirlo en la app, copia el archivo a <code>public/movement.mp4</code> y recompila.</small></div>}
     </div>
